@@ -162,7 +162,8 @@ def main():
 
     translator = QtCore.QTranslator()
     translator.load(
-        QtCore.QLocale.system().name(),
+        # QtCore.QLocale.system().name(),
+        "zh_CN",
         osp.dirname(osp.abspath(__file__)) + "/translate",
     )
     app = QtWidgets.QApplication(sys.argv)

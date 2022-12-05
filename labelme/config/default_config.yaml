@@ -82,6 +82,7 @@ shortcuts:
   open_dir: Ctrl+U
   quit: Ctrl+Q
   save: Ctrl+S
+  upload: Ctrl+U
   save_as: Ctrl+Shift+S
   save_to: null
   delete_file: Ctrl+Delete

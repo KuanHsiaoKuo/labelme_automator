@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-
+import datetime
 import functools
 import html
+import json
 import math
 import os
 import os.path as osp
@@ -10,15 +11,14 @@ import webbrowser
 
 import imgviz
 import natsort
+import requests
 from qtpy import QtCore
-from qtpy.QtCore import Qt
 from qtpy import QtGui
 from qtpy import QtWidgets
+from qtpy.QtCore import Qt
 
-from labelme import __appname__
 from labelme import PY2
-
-from . import utils
+from labelme import __appname__
 from labelme.config import get_config
 from labelme.label_file import LabelFile
 from labelme.label_file import LabelFileError
@@ -33,6 +33,7 @@ from labelme.widgets import LabelListWidgetItem
 from labelme.widgets import ToolBar
 from labelme.widgets import UniqueLabelQListWidget
 from labelme.widgets import ZoomWidget
+from . import utils
 
 # FIXME
 # - [medium] Set max zoom value to something big enough for FitWidth/Window
@@ -45,16 +46,15 @@ LABEL_COLORMAP = imgviz.label_colormap()
 
 
 class MainWindow(QtWidgets.QMainWindow):
-
     FIT_WINDOW, FIT_WIDTH, MANUAL_ZOOM = 0, 1, 2
 
     def __init__(
-        self,
-        config=None,
-        filename=None,
-        output=None,
-        output_file=None,
-        output_dir=None,
+            self,
+            config=None,
+            filename=None,
+            output=None,
+            output_file=None,
+            output_dir=None,
     ):
         if output is not None:
             logger.warning(
@@ -248,6 +248,15 @@ class MainWindow(QtWidgets.QMainWindow):
             "prev",
             self.tr("Open prev (hold Ctl+Shift to copy labels)"),
             enabled=False,
+        )
+        upload = action(
+            self.tr("&Upload"),
+            self.uploadLabels,
+            shortcuts["upload"],
+            "upload",
+            self.tr("Upload labels to server"),
+            enabled=False,
+
         )
         save = action(
             self.tr("&Save"),
@@ -582,6 +591,7 @@ class MainWindow(QtWidgets.QMainWindow):
             saveAuto=saveAuto,
             saveWithImageData=saveWithImageData,
             changeOutputDir=changeOutputDir,
+            upload=upload,
             save=save,
             saveAs=saveAs,
             open=open_,
@@ -646,7 +656,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 undo,
                 undoLastPoint,
                 removePoint,
+                upload,
             ),
+            # Enable action which depend on an opened image
             onLoadActive=(
                 close,
                 createMode,
@@ -658,11 +670,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 editMode,
                 brightnessContrast,
             ),
-            onShapesPresent=(saveAs, hideAll, showAll),
+            # enabled when lablels present
+            onShapesPresent=(upload, saveAs, hideAll, showAll),
         )
 
         self.canvas.vertexSelected.connect(self.actions.removePoint.setEnabled)
-
+        # topBar level 1 menus
         self.menus = utils.struct(
             file=self.menu(self.tr("&File")),
             edit=self.menu(self.tr("&Edit")),
@@ -671,7 +684,7 @@ class MainWindow(QtWidgets.QMainWindow):
             recentFiles=QtWidgets.QMenu(self.tr("Open &Recent")),
             labelList=labelMenu,
         )
-
+        # topBar menus of file
         utils.addActions(
             self.menus.file,
             (
@@ -688,6 +701,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 close,
                 deleteFile,
                 None,
+                upload,
                 quit,
             ),
         )
@@ -1175,9 +1189,9 @@ class MainWindow(QtWidgets.QMainWindow):
             label_id += self._config["shift_auto_shape_color"]
             return LABEL_COLORMAP[label_id % len(LABEL_COLORMAP)]
         elif (
-            self._config["shape_color"] == "manual"
-            and self._config["label_colors"]
-            and label in self._config["label_colors"]
+                self._config["shape_color"] == "manual"
+                and self._config["label_colors"]
+                and label in self._config["label_colors"]
         ):
             return self._config["label_colors"][label]
         elif self._config["default_shape_color"]:
@@ -1272,7 +1286,8 @@ class MainWindow(QtWidgets.QMainWindow):
             lf.save(
                 filename=filename,
                 shapes=shapes,
-                imagePath=imagePath,
+                # imagePath=imagePath,
+                imagePath=self.imagePath,
                 imageData=imageData,
                 imageHeight=self.image.height(),
                 imageWidth=self.image.width(),
@@ -1467,7 +1482,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Load the specified file, or the last opened file if None."""
         # changing fileListWidget loads file
         if filename in self.imageList and (
-            self.fileListWidget.currentRow() != self.imageList.index(filename)
+                self.fileListWidget.currentRow() != self.imageList.index(filename)
         ):
             self.fileListWidget.setCurrentRow(self.imageList.index(filename))
             self.fileListWidget.repaint()
@@ -1493,7 +1508,7 @@ class MainWindow(QtWidgets.QMainWindow):
             label_file_without_path = osp.basename(label_file)
             label_file = osp.join(self.output_dir, label_file_without_path)
         if QtCore.QFile.exists(label_file) and LabelFile.is_label_file(
-            label_file
+                label_file
         ):
             try:
                 self.labelFile = LabelFile(label_file)
@@ -1598,9 +1613,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def resizeEvent(self, event):
         if (
-            self.canvas
-            and not self.image.isNull()
-            and self.zoomMode != self.MANUAL_ZOOM
+                self.canvas
+                and not self.image.isNull()
+                and self.zoomMode != self.MANUAL_ZOOM
         ):
             self.adjustScale()
         super(MainWindow, self).resizeEvent(event)
@@ -1679,7 +1694,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def openPrevImg(self, _value=False):
         keep_prev = self._config["keep_prev"]
         if QtWidgets.QApplication.keyboardModifiers() == (
-            Qt.ControlModifier | Qt.ShiftModifier
+                Qt.ControlModifier | Qt.ShiftModifier
         ):
             self._config["keep_prev"] = True
 
@@ -1703,7 +1718,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def openNextImg(self, _value=False, load=True):
         keep_prev = self._config["keep_prev"]
         if QtWidgets.QApplication.keyboardModifiers() == (
-            Qt.ControlModifier | Qt.ShiftModifier
+                Qt.ControlModifier | Qt.ShiftModifier
         ):
             self._config["keep_prev"] = True
 
@@ -1790,6 +1805,48 @@ class MainWindow(QtWidgets.QMainWindow):
             )
             self.fileListWidget.repaint()
 
+    def get_ocr_result(self, label_info, image_path):
+        """
+        [
+            {
+                'label': 'test',
+                'points': [
+                    [467.6506024096386, 32.09638554216872],
+                    [853.1927710843373, 71.85542168674704]
+                ],
+                'group_id': 8, 'shape_type': 'rectangle', 'flags': {}
+            }
+        ]
+        :param label_info:
+        :return:
+        """
+        top_left = {"x": label_info['points'][0][0], "y": label_info['points'][0][1]}
+        down_right = {"x": label_info['points'][1][0], "y": label_info['points'][1][1]}
+        data = {
+                "coordinates": [top_left, down_right],
+                "image_path": image_path
+            }
+        response = requests.post(
+            url="http://127.0.0.1:4000/api/ocr",
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+            },
+            data=json.dumps(data)
+        )
+        return response.json()
+
+    def uploadLabels(self):
+        assert not self.image.isNull(), "cannot save empty image"
+        now_str = datetime.datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
+        filename = f"{now_str}.json"
+        self._saveFile(filename)
+        with open(filename, 'r') as f:
+            upload_data = json.loads(f.read())
+            image_path = upload_data['imagePath']
+            for label in upload_data['shapes']:
+                res = self.get_ocr_result(label, image_path)
+                print(res)
+
     def saveFile(self, _value=False):
         assert not self.image.isNull(), "cannot save empty image"
         if self.labelFile:
@@ -1835,6 +1892,8 @@ class MainWindow(QtWidgets.QMainWindow):
             default_labelfile_name,
             self.tr("Label files (*%s)") % LabelFile.suffix,
         )
+        import pdb;
+        pdb.set_trace()
         if isinstance(filename, tuple):
             filename, _ = filename
         return filename
@@ -1949,7 +2008,7 @@ class MainWindow(QtWidgets.QMainWindow):
             "proceed anyway?"
         ).format(len(self.canvas.selectedShapes))
         if yes == QtWidgets.QMessageBox.warning(
-            self, self.tr("Attention"), msg, yes | no, yes
+                self, self.tr("Attention"), msg, yes | no, yes
         ):
             self.remLabels(self.canvas.deleteSelected())
             self.setDirty()
@@ -2008,7 +2067,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filename = None
         for file in imageFiles:
             if file in self.imageList or not file.lower().endswith(
-                tuple(extensions)
+                    tuple(extensions)
             ):
                 continue
             label_file = osp.splitext(file)[0] + ".json"
@@ -2018,7 +2077,7 @@ class MainWindow(QtWidgets.QMainWindow):
             item = QtWidgets.QListWidgetItem(file)
             item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             if QtCore.QFile.exists(label_file) and LabelFile.is_label_file(
-                label_file
+                    label_file
             ):
                 item.setCheckState(Qt.Checked)
             else:
@@ -2051,7 +2110,7 @@ class MainWindow(QtWidgets.QMainWindow):
             item = QtWidgets.QListWidgetItem(filename)
             item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             if QtCore.QFile.exists(label_file) and LabelFile.is_label_file(
-                label_file
+                    label_file
             ):
                 item.setCheckState(Qt.Checked)
             else:

@@ -1,12 +1,10 @@
-from math import sqrt
 import os.path as osp
+from math import sqrt
 
 import numpy as np
-
 from qtpy import QtCore
 from qtpy import QtGui
 from qtpy import QtWidgets
-
 
 here = osp.dirname(osp.abspath(__file__))
 
@@ -26,15 +24,15 @@ def newButton(text, icon=None, slot=None):
 
 
 def newAction(
-    parent,
-    text,
-    slot=None,
-    shortcut=None,
-    icon=None,
-    tip=None,
-    checkable=False,
-    enabled=True,
-    checked=False,
+        parent,
+        text,
+        slot=None,
+        shortcut=None,
+        icon=None,
+        tip=None,
+        checkable=False,
+        enabled=True,
+        checked=False,
 ):
     """Create a new action and assign callbacks, shortcuts, etc."""
     a = QtWidgets.QAction(text, parent)

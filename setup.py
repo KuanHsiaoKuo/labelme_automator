@@ -68,8 +68,9 @@ def get_install_requires():
 
 
 def get_long_description():
-    with open("README.md") as f:
+    with open("README.md", encoding='utf8') as f:
         long_description = f.read()
+        print(long_description)
     try:
         # when this package is being released
         import github2pypi
@@ -119,7 +120,7 @@ def main():
         version=version,
         packages=find_packages(),
         description="Image Polygonal Annotation with Python",
-        long_description=get_long_description(),
+        # long_description=get_long_description(),
         long_description_content_type="text/markdown",
         author="Kentaro Wada",
         author_email="www.kentaro.wada@gmail.com",

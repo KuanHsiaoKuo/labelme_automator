@@ -37,3 +37,7 @@ python -m labelme
 - [Flake8 integrated with PyCharm](https://gist.github.com/tossmilestone/23139d870841a3d5cba2aea28da1a895)
 
 ![CleanShot 2022-12-05 at 13.30.02@2x](https://raw.githubusercontent.com/KuanHsiaoKuo/writing_materials/main/imgs/CleanShot%202022-12-05%20at%2013.30.02%402x.png)
+
+## 翻译
+
+- [《快速掌握PyQt5》第二十九章 国际化 - 知乎](https://zhuanlan.zhihu.com/p/75650992)

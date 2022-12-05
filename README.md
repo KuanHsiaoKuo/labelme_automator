@@ -29,3 +29,11 @@ python -m labelme
 - 对应jetbrains配置
 
 ![CleanShot 2022-12-05 at 12.59.39@2x](https://raw.githubusercontent.com/KuanHsiaoKuo/writing_materials/main/imgs/CleanShot%202022-12-05%20at%2012.59.39%402x.png)
+
+## Jetbrains配置flake8检测
+
+> 由于CI默认需要满足flake8，所以这里需要配置一个External Tool(Settings > Tools)
+
+- [Flake8 integrated with PyCharm](https://gist.github.com/tossmilestone/23139d870841a3d5cba2aea28da1a895)
+
+![CleanShot 2022-12-05 at 13.30.02@2x](https://raw.githubusercontent.com/KuanHsiaoKuo/writing_materials/main/imgs/CleanShot%202022-12-05%20at%2013.30.02%402x.png)

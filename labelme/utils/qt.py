@@ -1,7 +1,7 @@
-import os.path as osp
 from math import sqrt
 
 import numpy as np
+import os.path as osp
 from qtpy import QtCore
 from qtpy import QtGui
 from qtpy import QtWidgets

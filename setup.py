@@ -121,6 +121,7 @@ def main():
         packages=find_packages(),
         description="Image Polygonal Annotation with Python",
         # long_description=get_long_description(),
+        long_description='custom_label_automator',
         long_description_content_type="text/markdown",
         author="Kentaro Wada",
         author_email="www.kentaro.wada@gmail.com",
